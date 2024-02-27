@@ -1,5 +1,6 @@
 mod gap_buffer;
 mod motion_interpreter;
+mod editor_state;
 
 fn main() {
     let mut buffer = gap_buffer::GapBuffer::<char>::new_empty();

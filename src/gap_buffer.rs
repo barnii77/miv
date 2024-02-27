@@ -40,14 +40,14 @@ fn splice<T>(
 }
 
 #[derive(Debug)]
-pub struct GapWindow {
+pub(crate) struct GapWindow {
     index: usize,
     size: usize,
 }
 
 /// A gap buffer for small sized T types (preferably smaller than a pointer)
 #[derive(Debug)]
-pub struct GapBuffer<T> {
+pub(crate) struct GapBuffer<T> {
     buffer: Vec<T>,
     gap_window: GapWindow,
 }
@@ -55,7 +55,7 @@ pub struct GapBuffer<T> {
 // TODO implement this more efficiently with less iter.cloned()
 // maybe require T to implement Copy
 impl<T: Clone + Default> GapBuffer<T> {
-    pub fn new(cap: usize) -> Self {
+    pub(crate) fn new(cap: usize) -> Self {
         // pad the buffer (because the splice method requires it and is heavily used here)
         let buffer = std::iter::repeat(T::default())
             .take(cap)
@@ -66,10 +66,10 @@ impl<T: Clone + Default> GapBuffer<T> {
         };
         Self { buffer, gap_window }
     }
-    pub fn new_empty() -> Self {
+    pub(crate) fn new_empty() -> Self {
         Self::new(0)
     }
-    pub fn insert(&mut self, mut chars: &[T]) {
+    pub(crate) fn insert(&mut self, mut chars: &[T]) {
         // NOTE: empty range means just insert everything at the index that the range
         // starts and ends at
         if self.gap_window.size < chars.len() {
@@ -125,7 +125,7 @@ impl<T: Clone + Default> GapBuffer<T> {
             self.gap_window.size -= chars.len();
         }
     }
-    pub fn delete(&mut self, count: usize) {
+    pub(crate) fn delete(&mut self, count: usize) {
         if self.gap_window.index > count {
             self.gap_window.size += count;
             self.gap_window.index -= count;
@@ -134,7 +134,7 @@ impl<T: Clone + Default> GapBuffer<T> {
             self.gap_window.index = 0;
         }
     }
-    pub fn move_gap(&mut self, index: usize) {
+    pub(crate) fn move_gap(&mut self, index: usize) {
         match index.cmp(&self.gap_window.index) {
             std::cmp::Ordering::Less => {
                 // move gap to the left
