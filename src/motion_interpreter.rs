@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 
-struct MivState {
-
-}
+struct MivState {}
 
 enum MotionInterpreterError {
     UnknownMotionError(String),
@@ -13,6 +11,12 @@ type MotionComponentBuffer = Vec<char>;
 enum MotionTree {
     Incomplete(HashMap<char, MotionTree>),
     Complete(fn(MivState) -> MivState),
+}
+
+impl MotionTree {
+    fn new() -> Self {
+        Self::Incomplete(HashMap::new())
+    }
 }
 
 enum MotionInterpreterState {
@@ -31,27 +35,30 @@ impl MotionInterpreterState {
                             let subtree = motion_subtree.get(m);
                             possible_motions = match subtree {
                                 Some(subtree) => subtree,
-                                None => return Err(
-                                    MotionInterpreterError::UnknownMotionError(
-                                                format!("Unknown motion: {}", motion_component_buffer.join(""))
-                                            )
-                                        ),
+                                None => {
+                                    return Err(
+                                        MotionInterpreterError::UnknownMotionError(
+                                            format!("Unknown motion: {}", motion_component_buffer.iter().collect::<String>())
+                                        )
+                                    )
+                                },
                             }
                         }
                         MotionTree::Complete(motion_function) => {
-                            return Ok(Self::Done(motion_function.clone()));
+                            return Ok(Self::Done(*motion_function));
                         }
                     }
                 }
                 match possible_motions {
-                    MotionTree::Incomplete(motion_subtree) => {
+                    MotionTree::Incomplete(_) => {
                         motion_component_buffer.push(next);
                         Ok(Self::Pending(motion_component_buffer))
                     }
-                    MotionTree::Complete(motion_function) => Ok(Self::Done(motion_function.clone()))
+                    MotionTree::Complete(motion_function) => Ok(Self::Done(*motion_function))
                 }
             },
-            MotionInterpreterState::Done(f) => panic!("Did not refresh state after a motion was complete, editor should have processed motion command but didn't"),
+            MotionInterpreterState::Done(_) => panic!("Did not refresh state after a motion was complete, editor should have processed motion command but didn't"),
         }
     }
 }
+
