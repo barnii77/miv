@@ -1,8 +1,9 @@
-use crate::editor_state::MivState;
+use crate::editor_state::{EditorState, EditorStateUpdate};
 use std::collections::HashMap;
+use std::rc::Rc;
 
 #[derive(Debug, thiserror::Error)]
-enum MotionInterpreterError {
+pub(crate) enum MotionInterpreterError {
     #[error("Unknown motion: {0:?}")]
     UnknownMotionError(MotionComponentBuffer),
     // TODO when async execution is supported, the role of this
@@ -14,32 +15,37 @@ enum MotionInterpreterError {
 }
 
 #[derive(Debug, thiserror::Error)]
-enum MotionTreeError {
+pub(crate) enum MotionTreeError {
     #[error("Empty motion")]
     EmptyMotionError,
     #[error("Motion already exists")]
     MotionAlreadyExistsError,
 }
 
-#[derive(Debug)]
-struct MotionComponentBuffer(Vec<char>);
+#[derive(Debug, Clone)]
+pub(crate) struct MotionComponentBuffer(Vec<MotionAtom>);
 
 // TODO use async; for example:
-// type MotionFunction = fn(MivState) -> impl Future<Output=MivState>;
-// type MotionFunction = fn(MivState) -> Box<dyn Future<Output=MivStateUpdate>>;
-type MotionFunction = fn(MivState) -> MivState;
+#[derive(Clone)]
+pub(crate) struct MotionFunction(pub(crate) Rc<dyn Fn(&EditorState) -> EditorStateUpdate>);
 
-enum MotionTree {
-    Tree(HashMap<char, MotionTree>),
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+pub(crate) struct MotionAtom {
+    pub(crate) code: crossterm::event::KeyCode,
+    pub(crate) modifiers: crossterm::event::KeyModifiers,
+}
+
+// so other modules can use it without having hardcoded copies
+// this ideally avoids refactoring pain
+pub(crate) type MotionTreeMap = HashMap<MotionAtom, MotionTree>;
+
+pub(crate) enum MotionTree {
+    Tree(MotionTreeMap),
     Atom(MotionFunction),
 }
 
 impl MotionTree {
-    fn new() -> Self {
-        Self::Tree(HashMap::new())
-    }
-
-    fn insert(
+    pub(crate) fn insert(
         &mut self,
         motion: MotionComponentBuffer,
         motion_function: MotionFunction,
@@ -56,7 +62,9 @@ impl MotionTree {
                 // NOTE: unwrap is fine because we return at function start if motion.is_empty()
                 let final_motion = *motion.0.iter().last().unwrap();
                 for m in categorical_motions_iter {
-                    let subtree = possible_motions.entry(*m).or_insert_with(MotionTree::new);
+                    let subtree = possible_motions
+                        .entry(*m)
+                        .or_insert_with(MotionTree::default);
                     possible_motions = match subtree {
                         MotionTree::Tree(subtree) => subtree,
                         MotionTree::Atom(_) => {
@@ -72,16 +80,44 @@ impl MotionTree {
     }
 }
 
-enum MotionInterpreterState {
+impl Default for MotionTree {
+    fn default() -> Self {
+        Self::Tree(HashMap::new())
+        // let mut hash_map = HashMap::new();
+        // (Currently dont) automatically add ctrl-c to quit the editor
+        // hash_map.insert(
+        //     MotionAtom {
+        //         code: crossterm::event::KeyCode::Char('c'),
+        //         modifiers: crossterm::event::KeyModifiers::CONTROL,
+        //     },
+        //     Self::Atom(MotionFunction(Rc::new(|_| {
+        //         println!("bye bye");
+        //         std::process::exit(0)
+        //     }))), // TODO improve this
+        // );
+        // MotionTree::Tree(hash_map)
+    }
+}
+
+#[derive(Clone)]
+pub(crate) enum MotionInterpreterState {
     Pending(MotionComponentBuffer),
     Done(MotionFunction),
 }
 
 impl MotionInterpreterState {
-    fn update(self, motion_tree: MotionTree, next: char) -> Result<Self, MotionInterpreterError> {
+    pub(crate) fn new() -> Self {
+        Self::Pending(MotionComponentBuffer(Vec::new()))
+    }
+
+    pub(crate) fn update(
+        self,
+        motion_tree: &MotionTree,
+        next: MotionAtom,
+    ) -> Result<Self, MotionInterpreterError> {
         match self {
             MotionInterpreterState::Pending(mut motion_component_buffer) => {
-                let mut possible_motions = &motion_tree;
+                let mut possible_motions = motion_tree;
                 for m in motion_component_buffer.0.iter() {
                     match possible_motions {
                         MotionTree::Tree(motion_subtree) => {
@@ -96,7 +132,7 @@ impl MotionInterpreterState {
                             }
                         }
                         MotionTree::Atom(motion_function) => {
-                            return Ok(Self::Done(*motion_function));
+                            return Ok(Self::Done(MotionFunction(Rc::clone(&motion_function.0))))
                         }
                     }
                 }
@@ -105,7 +141,9 @@ impl MotionInterpreterState {
                         motion_component_buffer.0.push(next);
                         Ok(Self::Pending(motion_component_buffer))
                     }
-                    MotionTree::Atom(motion_function) => Ok(Self::Done(*motion_function)),
+                    MotionTree::Atom(motion_function) => {
+                        Ok(Self::Done(MotionFunction(Rc::clone(&motion_function.0))))
+                    }
                 }
             }
             MotionInterpreterState::Done(_) => Err(MotionInterpreterError::PendingMotionError),

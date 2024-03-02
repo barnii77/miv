@@ -39,14 +39,14 @@ fn splice<T>(
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct GapWindow {
     index: usize,
     size: usize,
 }
 
 /// A gap buffer for small sized T types (preferably smaller than a pointer)
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct GapBuffer<T> {
     buffer: Vec<T>,
     gap_window: GapWindow,

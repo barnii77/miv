@@ -1,13 +1,11 @@
 mod gap_buffer;
 mod motion_interpreter;
 mod editor_state;
+mod editor_buffer;
+mod editor;
+mod cursor;
+mod setup_motions;
 
 fn main() {
-    let mut buffer = gap_buffer::GapBuffer::<char>::new_empty();
-    let string_vec = "hello world".chars().collect::<Vec<char>>();
-    buffer.insert(&string_vec);
-    buffer.move_gap(2);
-    buffer.delete(3);
-    buffer.insert(&string_vec);
-    println!("{:?}", buffer);
+    editor::run().unwrap();
 }
