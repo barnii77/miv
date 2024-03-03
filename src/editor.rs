@@ -23,17 +23,32 @@ pub(crate) fn process(
                 code, modifiers, ..
             } = key_event;
             let motion_atom = crate::motion_interpreter::MotionAtom { code, modifiers };
-            ed_state.motion_interpreter_state = ed_state
+            let ed_state_updated_or_error = ed_state
                 .motion_interpreter_state
                 .clone() // this might hit performance hard because of heap allocations in vec
                 // (TODO: remove vec component and replace with slice?)
-                .update(ed_state.active_motion_tree_mut(), motion_atom)?;
-            match &ed_state.motion_interpreter_state {
-                crate::motion_interpreter::MotionInterpreterState::Pending(_) => Ok(None),
-                crate::motion_interpreter::MotionInterpreterState::Done(motion_function) => {
+                .update(ed_state.active_motion_tree(), motion_atom);
+            match ed_state_updated_or_error {
+                Ok(crate::motion_interpreter::MotionInterpreterState::Pending(
+                    motion_component_buffer,
+                )) => {
+                    ed_state.motion_interpreter_state =
+                        crate::motion_interpreter::MotionInterpreterState::Pending(
+                            motion_component_buffer,
+                        );
+                    Ok(None)
+                }
+                Ok(crate::motion_interpreter::MotionInterpreterState::Done(motion_function)) => {
+                    ed_state.motion_interpreter_state =
+                        crate::motion_interpreter::MotionInterpreterState::new();
                     Ok(Some(crate::motion_interpreter::MotionFunction(Rc::clone(
                         &motion_function.0,
                     ))))
+                }
+                Err(error) => {
+                    ed_state.motion_interpreter_state =
+                        crate::motion_interpreter::MotionInterpreterState::new();
+                    Err(error)
                 }
             }
             // TODO add this to the motion tree automatically
@@ -58,7 +73,8 @@ pub(crate) fn process(
 }
 
 pub(crate) fn run() -> std::io::Result<()> {
-    let stdout = io::stdout();
+    // NOTE: enabling and disabling raw mode is handled by main (caller)
+    // let stdout = io::stdout();
     let (cols, rows) = terminal::size()?;
     let term_info = crate::editor_state::TermInfo { rows, cols };
     let editor_globals = crate::editor_state::EditorGlobals::default();
@@ -79,11 +95,11 @@ pub(crate) fn run() -> std::io::Result<()> {
             }
             Ok(None) => {}
             Err(error) => {
-                eprintln!("Error processing event: {:?}", error);
                 // panic only in debug mode, ignore in release mode
-                // if cfg!(debug_assertions) {
-                //     panic!("Error processing event: {:?}", e);
-                // }
+                if cfg!(debug_assertions) {
+                    // panic!("Error processing event: {:?}", e);
+                    eprintln!("Error processing event: {:?}", error);
+                }
             }
         }
     }
