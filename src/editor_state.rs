@@ -4,6 +4,11 @@ pub(crate) enum EditorMode {
     Visual { cursor_start: crate::cursor::Cursor },
 }
 
+#[derive(Default)]
+pub(crate) struct CommandLine {
+    pub(crate) buffer: String,
+}
+
 impl EditorMode {
     pub(crate) fn new_normal() -> Self {
         Self::Normal
@@ -23,15 +28,28 @@ pub(crate) struct TermInfo {
     pub(crate) cols: u16,
 }
 
-#[derive(Default)]
 pub(crate) struct EditorGlobals {
     pub(crate) normal_mode_motion_tree: crate::motion_interpreter::MotionTree,
     pub(crate) insert_mode_motion_tree: crate::motion_interpreter::MotionTree,
     pub(crate) visual_mode_motion_tree: crate::motion_interpreter::MotionTree,
+    pub(crate) tab_size: usize,
+}
+
+impl Default for EditorGlobals {
+    fn default() -> Self {
+        Self {
+            normal_mode_motion_tree: crate::motion_interpreter::MotionTree::default(),
+            insert_mode_motion_tree: crate::motion_interpreter::MotionTree::default(),
+            visual_mode_motion_tree: crate::motion_interpreter::MotionTree::default(),
+            tab_size: 4,
+        }
+    }
 }
 
 pub(crate) struct EditorState {
     pub(crate) mode: EditorMode,
+    pub(crate) cursor: crate::cursor::Cursor,
+    pub(crate) command_line: CommandLine,
     pub(crate) buffers: Vec<crate::editor_buffer::Buffer>,
     pub(crate) buffer_idx: usize,
     pub(crate) term_info: TermInfo,
@@ -52,6 +70,8 @@ impl EditorState {
     pub(crate) fn new_normal(term_info: TermInfo, editor_globals: EditorGlobals) -> Self {
         Self {
             mode: EditorMode::new_normal(),
+            cursor: crate::cursor::Cursor::default(),
+            command_line: CommandLine::default(),
             buffers: vec![crate::editor_buffer::Buffer::new()],
             buffer_idx: 0,
             term_info,
@@ -63,6 +83,8 @@ impl EditorState {
     pub(crate) fn new_insert(term_info: TermInfo, editor_globals: EditorGlobals) -> Self {
         Self {
             mode: EditorMode::new_insert(),
+            cursor: crate::cursor::Cursor::default(),
+            command_line: CommandLine::default(),
             buffers: vec![crate::editor_buffer::Buffer::new()],
             buffer_idx: 0,
             term_info,
@@ -78,6 +100,8 @@ impl EditorState {
     ) -> Self {
         Self {
             mode: EditorMode::new_visual(cursor_start),
+            cursor: crate::cursor::Cursor::default(),
+            command_line: CommandLine::default(),
             buffers: vec![crate::editor_buffer::Buffer::new()],
             buffer_idx: 0,
             term_info,

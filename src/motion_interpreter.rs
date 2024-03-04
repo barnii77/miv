@@ -117,6 +117,7 @@ impl MotionInterpreterState {
     ) -> Result<Self, MotionInterpreterError> {
         match self {
             MotionInterpreterState::Pending(mut motion_component_buffer) => {
+                motion_component_buffer.0.push(next);
                 let mut possible_motions = motion_tree;
                 for m in motion_component_buffer.0.iter() {
                     match possible_motions {
@@ -138,7 +139,6 @@ impl MotionInterpreterState {
                 }
                 match possible_motions {
                     MotionTree::Tree(_) => {
-                        motion_component_buffer.0.push(next);
                         Ok(Self::Pending(motion_component_buffer))
                     }
                     MotionTree::Atom(motion_function) => {

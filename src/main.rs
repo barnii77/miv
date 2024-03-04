@@ -1,3 +1,5 @@
+use crossterm::terminal;
+
 mod cursor;
 mod editor;
 mod editor_buffer;
@@ -12,8 +14,8 @@ pub(crate) fn quit() -> ! {
 }
 
 fn main() -> std::io::Result<()> {
-    crossterm::terminal::enable_raw_mode()?;
+    terminal::enable_raw_mode()?;
     let error = editor::run();
-    crossterm::terminal::disable_raw_mode()?;
+    terminal::disable_raw_mode()?;
     error
 }
