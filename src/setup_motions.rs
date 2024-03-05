@@ -20,6 +20,7 @@ pub(crate) fn setup_normal_motions(motion_tree_map: &mut crate::motion_interpret
         },
         crate::motion_interpreter::MotionTree::Atom(crate::motion_interpreter::MotionFunction(
             Rc::new(|_| {
+                println!("insert mode");
                 crate::editor_state::EditorStateUpdate::Mode(
                     crate::editor_state::EditorMode::Insert,
                 )
@@ -33,6 +34,7 @@ pub(crate) fn setup_normal_motions(motion_tree_map: &mut crate::motion_interpret
         },
         crate::motion_interpreter::MotionTree::Atom(crate::motion_interpreter::MotionFunction(
             Rc::new(|ed_state| {
+                println!("visual mode");
                 crate::editor_state::EditorStateUpdate::Mode(
                     crate::editor_state::EditorMode::Visual {
                         cursor_start: ed_state.cursor,
@@ -51,6 +53,7 @@ pub(crate) fn setup_insert_motions(motion_tree_map: &mut crate::motion_interpret
         },
         crate::motion_interpreter::MotionTree::Atom(crate::motion_interpreter::MotionFunction(
             Rc::new(|_| {
+                println!("normal mode");
                 crate::editor_state::EditorStateUpdate::Mode(
                     crate::editor_state::EditorMode::Normal,
                 )
@@ -67,6 +70,7 @@ pub(crate) fn setup_visual_motions(motion_tree_map: &mut crate::motion_interpret
         },
         crate::motion_interpreter::MotionTree::Atom(crate::motion_interpreter::MotionFunction(
             Rc::new(|_| {
+                println!("normal mode");
                 crate::editor_state::EditorStateUpdate::Mode(
                     crate::editor_state::EditorMode::Normal,
                 )

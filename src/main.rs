@@ -7,6 +7,7 @@ mod editor_state;
 mod gap_buffer;
 mod motion_interpreter;
 mod setup_motions;
+mod render;
 
 pub(crate) fn quit() -> ! {
     crossterm::terminal::disable_raw_mode().unwrap();

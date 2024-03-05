@@ -49,7 +49,7 @@ pub(crate) fn process(
                 }
             }
         }
-        Event::Mouse(mouse_event) => Ok(None), // TODO (maybe we dont need no mouse xD!!)
+        Event::Mouse(_mouse_event) => Ok(None), // TODO (maybe we dont need no mouse xD!!)
         Event::Paste(string) => {
             let buffer = ed_state.get_buffer_mut();
             let char_slice = string.chars().collect::<Vec<char>>();
@@ -145,6 +145,7 @@ pub(crate) fn run() -> std::io::Result<()> {
                             .expect("Fatal: Could not write to command line buffer");
                         }
                     }
+                    crate::render::render(&ed_state)?;
                 }
             }
         }
