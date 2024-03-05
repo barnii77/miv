@@ -9,6 +9,16 @@ pub(crate) struct CommandLine {
     pub(crate) buffer: String,
 }
 
+impl std::fmt::Write for CommandLine {
+    fn write_str(&mut self, s: &str) -> std::fmt::Result {
+        if self.buffer.ends_with('\n') {
+            self.buffer.clear();
+        }
+        self.buffer.push_str(s);
+        Ok(())
+    }
+}
+
 impl EditorMode {
     pub(crate) fn new_normal() -> Self {
         Self::Normal
@@ -33,6 +43,7 @@ pub(crate) struct EditorGlobals {
     pub(crate) insert_mode_motion_tree: crate::motion_interpreter::MotionTree,
     pub(crate) visual_mode_motion_tree: crate::motion_interpreter::MotionTree,
     pub(crate) tab_size: usize,
+    pub(crate) bottom_rows_skipped: usize, // How many rows to use for buffer displaying
 }
 
 impl Default for EditorGlobals {
@@ -42,6 +53,7 @@ impl Default for EditorGlobals {
             insert_mode_motion_tree: crate::motion_interpreter::MotionTree::default(),
             visual_mode_motion_tree: crate::motion_interpreter::MotionTree::default(),
             tab_size: 4,
+            bottom_rows_skipped: 0,
         }
     }
 }

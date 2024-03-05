@@ -1,4 +1,4 @@
-use std::ops::RangeBounds;
+use std::{array::IntoIter, ops::RangeBounds};
 
 fn is_empty_range(range: &impl RangeBounds<usize>) -> bool {
     let start = match range.start_bound() {
@@ -54,7 +54,10 @@ pub(crate) struct GapBuffer<T> {
 
 // TODO implement this more efficiently with less iter.cloned()
 // maybe require T to implement Copy
-impl<T: Clone + Default> GapBuffer<T> {
+impl<T: Clone + Default + PartialEq> GapBuffer<T> {
+    pub(crate) fn len(&self) -> usize {
+        self.buffer.len() - self.gap_window.size
+    }
     pub(crate) fn new(cap: usize) -> Self {
         // pad the buffer (because the splice method requires it and is heavily used here)
         let buffer = std::iter::repeat(T::default())
@@ -159,6 +162,14 @@ impl<T: Clone + Default> GapBuffer<T> {
                 self.gap_window.index = index;
             }
         }
+    }
+
+    /// Returns an iterator over the non-gap elements (by chaining iterators over both non-gap
+    /// buffer parts)
+    pub(crate) fn iter(&self) -> impl Iterator<Item = &T> {
+        self.buffer[..self.gap_window.index]
+            .iter()
+            .chain(self.buffer[self.gap_window.index + self.gap_window.size..].iter())
     }
 }
 

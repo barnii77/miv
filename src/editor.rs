@@ -105,8 +105,8 @@ pub(crate) fn run() -> std::io::Result<()> {
                     match ed_state.mode {
                         crate::editor_state::EditorMode::Normal => {
                             // In normal mode, this is considered an error
-                            write!(
-                                &mut ed_state.command_line.buffer as &mut dyn Write,
+                            writeln!(
+                                &mut ed_state.command_line,
                                 "{:?}",
                                 error
                             )
@@ -137,8 +137,8 @@ pub(crate) fn run() -> std::io::Result<()> {
                         }
                         crate::editor_state::EditorMode::Visual { .. } => {
                             // In visual mode, this is considered an error
-                            write!(
-                                &mut ed_state.command_line.buffer as &mut dyn Write,
+                            writeln!(
+                                &mut ed_state.command_line,
                                 "{:?}",
                                 error
                             )
